@@ -1,63 +1,65 @@
+# 导入需要的工具包
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+# 导入队友写好的两个功能
+from utils import analyze_finance
+from ai_helper import get_ai_advice
 
-def analyze_finance(df):
-    if df.empty:
-        raise ValueError("表格是空的")
-    if "类型" in df.columns and "金额" in df.columns:
-        total_in = df.loc[df["类型"] == "收入", "金额"].sum()
-        total_out = df.loc[df["类型"] == "支出", "金额"].sum()
-    elif "金额" in df.columns:
-        total_in = df[df["金额"] > 0]["金额"].sum()
-        total_out = -df[df["金额"] < 0]["金额"].sum()
-    else:
-        raise ValueError("表格里找不到 类型/金额 列")
-    return {"总收入": total_in, "总支出": total_out, "结余": total_in - total_out}
+# 网页标题、布局设置
+st.set_page_config(page_title="记账工具", layout="wide")
+st.title("📊个人记账分析网页")
 
-def get_ai_advice(mode):
-    if mode == "毒舌":
-        return "你这花钱速度，月底怕是要吃土了，收着点吧。"
-    return "整体还不错~ 建议固定存一笔，剩下的放心花，慢慢来会更安心哦。"
+# ========== 1. 左边侧边栏：文件上传（任务第一条）==========
+with st.sidebar:  # with st.sidebar 代表：里面所有东西都放在页面左边
+    st.header("📁上传记账表格")
+    # 上传按钮，可以传csv或者excel
+    uploaded_file = st.file_uploader("上传流水文件", type=["csv","xlsx"])
 
-st.set_page_config(page_title="个人记账分析", layout="wide")
-st.title("📊 个人记账分析网页")
-
-with st.sidebar:
-    st.header("📁 上传记账表格")
-    uploaded_file = st.file_uploader("上传 csv / xlsx", type=["csv", "xlsx"])
-    use_demo = st.checkbox("先用示例数据试一下")
-
-df = None
+# ========== 2. 如果用户上传了文件，就开始处理 ==========
 if uploaded_file is not None:
+    # try 和 except 就是容错！任务第四条重点！
+    # try：试着跑里面代码；如果出错（空表、格式不对），直接跳到except友好提示，不崩溃
     try:
-        df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith(".csv") else pd.read_excel(uploaded_file)
-    except Exception:
-        st.error("❌ 文件读取失败：请检查文件格式是否为 csv / xlsx")
-elif use_demo:
-    df = pd.DataFrame({"类型": ["收入", "收入", "支出", "支出", "支出"],
-                       "金额": [5000, 1200, 800, 350, 210]})
+        # 判断是csv还是excel，读取表格
+        if uploaded_file.name.endswith(".csv"):
+            df = pd.read_csv(uploaded_file)
+        else:
+            df = pd.read_excel(uploaded_file)
 
-if df is not None:
-    try:
-        res = analyze_finance(df)
-        col1, col2, col3 = st.columns(3)
-        col1.metric("💰 总收入", f"{res['总收入']:.2f}")
-        col2.metric("💸 总支出", f"{res['总支出']:.2f}")
-        col3.metric("📌 结余", f"{res['结余']:.2f}")
+        # 调用队友写好的函数，自动算出收入支出结余
+        result = analyze_finance(df)
+        income = result["总收入"]
+        expend = result["总支出"]
+        rest = result["结余"]
 
-        fig = px.pie(values=[res["总收入"], res["总支出"]], names=["收入", "支出"], title="收支占比")
+        # st.metric 并排展示三个数字（任务第二条）
+        col1,col2,col3 = st.columns(3) # 分成3列并排
+        with col1:
+            st.metric("总收入", f"{income:.2f}")
+        with col2:
+            st.metric("总支出", f"{expend:.2f}")
+        with col3:
+            st.metric("结余", f"{rest:.2f}")
+
+        # 画饼图
+        fig = px.pie(values=[income,expend], names=["收入","支出"], title="收支占比")
         st.plotly_chart(fig, use_container_width=True)
 
-        st.divider()
-        st.subheader("🤖 AI 消费建议")
-        advice_mode = st.radio("选择 AI 风格", ["毒舌", "温柔"], horizontal=True)
-        if st.button("生成消费建议"):
-            with st.spinner("AI 思考中..."):
-                st.success(get_ai_advice(advice_mode))
+        # ========== 3. AI交互部分（任务第三条）==========
+        st.subheader("🤖 AI消费建议")
+        # 单选框：二选一，温柔 / 毒舌
+        select_style = st.radio("选择AI风格", ["毒舌","温柔"])
+        # 按钮
+        click_btn = st.button("生成AI建议")
+        if click_btn: # 当按钮被按下的时候
+            advice = get_ai_advice(select_style)
+            st.success(advice)
 
-    except Exception as e:
-        st.error("❌ 文件处理失败！请检查表格是否为空、列名是否正确。")
-        st.caption(f"错误详情：{e}")
+    # 出错的时候执行这里，友好提示，不会爆红报错
+    except Exception:
+        st.error("❌ 文件出错啦！检查一下表格是不是空的、格式对不对！")
+
+# 没有上传文件的时候，页面提示
 else:
-    st.info("👈 请在左侧上传表格，或勾选「先用示例数据试一下」")
+    st.info("👈 在左边上传你的记账流水表格")
