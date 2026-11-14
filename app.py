@@ -81,6 +81,10 @@ elif use_demo:
 
 if df is not None:
     try:
+        # 【新增：可编辑表格，修改分类】
+        with st.expander("🔍 查看并修改账单分类明细", expanded=False):
+            df = st.data_editor(df, use_container_width=True)
+
         res = analyze_finance(df)
 
         col1, col2, col3 = st.columns(3)
@@ -90,8 +94,8 @@ if df is not None:
 
         st.divider()
 
+        # 【修改：两张图表左右并排 col1, col2】
         col_a, col_b = st.columns(2)
-
         with col_a:
             fig_pie = px.pie(
                 values=[res["总收入"], res["总支出"]],
@@ -127,7 +131,8 @@ if df is not None:
         advice_mode = st.radio("选择 AI 风格", ["毒舌", "温柔"], horizontal=True)
         if st.button("生成消费建议"):
             with st.spinner("AI 思考中..."):
-                st.success(get_ai_advice(res, top3, advice_mode))
+                st.markdown("### 📋 财务诊断与规划报告")
+                st.info(get_ai_advice(res, top3, advice_mode))
 
     except Exception as e:
         st.error("❌ 文件处理失败：请检查表格是否为空、表头是否包含『日期 / 分类 / 金额 / 收支类型』。")
