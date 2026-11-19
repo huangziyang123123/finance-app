@@ -47,28 +47,52 @@ def get_review_text(res, details, mode):
         return f"很棒，目前你的收支结构比较健康，结余{rest:.0f}元，主要花费在{top}{('、' + '、'.join(top_list[1:])) if len(top_list)>1 else '以及其他日常支出'}，保持现在这个稳定的节奏非常难得，同时我们还可以继续微调，让财务状态更加稳妥。{top}这类休闲放松类的消费，可以预留一部分弹性预算，不用完全克制正常的娱乐需求，健康的预算管理从来不是压抑消费，而是让资金分配更均衡，该花的地方从容花，该存的钱稳定存。你可以把每月结余分成两个部分，一部分作为灵活备用金，用来应对计划之外的小额支出，另一部分定向长期储蓄，朝着自己的小目标慢慢积累。继续坚持记账，定期回看账单，有意识地留意自己会不会在不知不觉中抬高消费标准，很多人就是在状态不错的时候慢慢放宽要求，最后储蓄计划被打乱。稳定的金钱观念是长期一点点养出来的，不是短时间就能成型。你现在已经找到了不错的起点，持续保持复盘的习惯，在好好生活的同时稳步攒钱，未来不管是想要短途出行、购入心仪物品，还是应对突发状况，手里有存款，都会拥有更多从容选择的底气。"
 
 
-# ===================== 页面配置 =====================
+# ===================== 页面配置 + 自定义CSS 美化字体、颜色 =====================
 st.set_page_config(page_title="我的记账本", layout="wide")
 
-# 标题区，加一点样式感
+custom_css = """
+<style>
+    /* 全局字体 */
+    html, body, [class*="css"] {
+        font-family: "Microsoft YaHei", sans-serif;
+    }
+    h1, h2, h3, h4 {
+        font-weight: 700 !important;
+    }
+    .small-note {
+        font-size:14px; color:#636e72;
+    }
+    .card-shadow {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+</style>
+"""
+st.markdown(custom_css, unsafe_allow_html=True)
+
+
+# 渐变标题栏
 st.markdown("""
-<div style="padding:16px; background:#f7f9fc; border-radius:12px; border-left:6px solid #4682B4;">
-    <h2 style="margin:0; color:#2c3e50;">我的记账本</h2>
-    <p style="margin:6px 0 0; color:#555;">上传账单表格，查看收支汇总，梳理自己的花钱节奏</p>
+<div style="padding:22px; background: linear-gradient(135deg, #74b9ff, #0984e3); border-radius:16px; color:white;" class="card-shadow">
+    <h2 style="margin:0; font-size:28px;">我的记账本</h2>
+    <p style="margin:8px 0 0; font-size:16px; opacity:0.92;">上传账单表格，查看收支汇总，梳理自己的花钱节奏</p>
 </div>
 """, unsafe_allow_html=True)
 st.divider()
 
-# 侧边栏
+# 侧边栏美化
 with st.sidebar:
-    st.markdown("### 账单文件")
+    st.markdown("""
+    <div style="padding:14px; background:linear-gradient(135deg,#ffeaa7,#fdcb6e); border-radius:12px; color:#2d3436;">
+        <h3 style="margin:0; font-size:18px;">账单文件</h3>
+    </div>
+    """, unsafe_allow_html=True)
     uploaded_file = st.file_uploader("上传表格", type=["csv", "xlsx"], help="表头需要包含：日期、分类、金额、收支类型")
     use_demo = st.checkbox("打开示例账单预览效果")
     st.markdown("""
-    <div style="background:#f0f4f8; padding:10px; border-radius:8px; font-size:13px; color:#444;">
-    小提示<br>
-    - 支持 csv / xlsx<br>
-    - 收支类型填：收入 / 支出
+    <div style="background:#dfe6e9; padding:12px; border-radius:10px; font-size:14px; color:#2d3436;">
+    温馨提示<br>
+    支持 csv / xlsx<br>
+    收支类型填写：收入 / 支出
     </div>
     """, unsafe_allow_html=True)
 
@@ -99,50 +123,60 @@ elif use_demo:
 if df is not None:
     try:
         # 账单明细区块
-        st.markdown("#### 账单明细（可以直接修改）")
+        st.markdown("""
+        <div style="padding:12px; background:#a29bfe; border-radius:12px; color:white;">
+            <h4 style="margin:0;">账单明细（可直接修改）</h4>
+        </div>
+        """, unsafe_allow_html=True)
         with st.expander("点开查看、编辑每一笔记录", expanded=False):
             df = st.data_editor(df, use_container_width=True)
 
         st.divider()
 
-        # 收支卡片，美化三块指标
+        # 收支三色卡片
         res = analyze_finance(df)
         c1, c2, c3 = st.columns(3)
         with c1:
             st.markdown("""
-            <div style="background:#e8f5e9; padding:20px; border-radius:10px; text-align:center;">
-                <div style="font-size:14px; color:#333;">总收入</div>
-                <div style="font-size:26px; font-weight:bold; color:#2e7d32;">{:.2f} 元</div>
+            <div style="background:linear-gradient(135deg,#55efc4,#00b894); padding:24px; border-radius:14px; text-align:center;" class="card-shadow">
+                <div style="font-size:15px; color:#2d3436; font-weight:500;">总收入</div>
+                <div style="font-size:28px; font-weight:bold; color:#00694c;">{:.2f} 元</div>
             </div>
             """.format(res["总收入"]), unsafe_allow_html=True)
         with c2:
             st.markdown("""
-            <div style="background:#ffebee; padding:20px; border-radius:10px; text-align:center;">
-                <div style="font-size:14px; color:#333;">总支出</div>
-                <div style="font-size:26px; font-weight:bold; color:#c62828;">{:.2f} 元</div>
+            <div style="background:linear-gradient(135deg,#ff7675,#d63031); padding:24px; border-radius:14px; text-align:center;" class="card-shadow">
+                <div style="font-size:15px; color:white; font-weight:500;">总支出</div>
+                <div style="font-size:28px; font-weight:bold; color:white;">{:.2f} 元</div>
             </div>
             """.format(res["总支出"]), unsafe_allow_html=True)
         with c3:
-            rest_color = "#2e7d32" if res["结余"]>=0 else "#c62828"
-            st.markdown("""
-            <div style="background:#f5f5f5; padding:20px; border-radius:10px; text-align:center;">
-                <div style="font-size:14px; color:#333;">当前结余</div>
-                <div style="font-size:26px; font-weight:bold; color:{};">{:.2f} 元</div>
+            rest_color_bg = "linear-gradient(135deg,#74b9ff,#0984e3)" if res["结余"]>=0 else "linear-gradient(135deg,#fab1a0,#e17055)"
+            text_color = "#003b70" if res["结余"]>=0 else "#8c2d18"
+            st.markdown(f"""
+            <div style="background:{rest_color_bg}; padding:24px; border-radius:14px; text-align:center;" class="card-shadow">
+                <div style="font-size:15px; color:white; font-weight:500;">当前结余</div>
+                <div style="font-size:28px; font-weight:bold; color:{text_color};">{res["结余"]:.2f} 元</div>
             </div>
-            """.format(rest_color, res["结余"]), unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
         st.divider()
-        st.markdown("#### 收支图表")
+        # 图表标题栏
+        st.markdown("""
+        <div style="padding:12px; background:#fd79a8; border-radius:12px; color:white;">
+            <h4 style="margin:0;">收支图表</h4>
+        </div>
+        """, unsafe_allow_html=True)
         col_a, col_b = st.columns(2)
         with col_a:
             fig_pie = px.pie(
                 values=[res["总收入"], res["总支出"]],
                 names=["收入", "支出"],
                 title="收入和支出占比",
-                color_discrete_sequence=["#43a047", "#e53935"],
+                color_discrete_sequence=["#00b894", "#e17055"],
                 hole=0.2
             )
-            fig_pie.update_layout(title_x=0.5)
+            fig_pie.update_layout(title_x=0.5, font={"size":14})
             st.plotly_chart(fig_pie, use_container_width=True)
 
         with col_b:
@@ -157,25 +191,29 @@ if df is not None:
                     orientation="h",
                     title="各类开销排行",
                     labels={"x": "金额（元）", "y": "分类"},
-                    color_discrete_sequence=["#5c6bc0"]
+                    color_discrete_sequence=["#0984e3"]
                 )
-                fig_bar.update_layout(yaxis=dict(autorange="reversed"), title_x=0.5)
+                fig_bar.update_layout(yaxis=dict(autorange="reversed"), title_x=0.5, font={"size":14})
                 st.plotly_chart(fig_bar, use_container_width=True)
             else:
                 st.info("目前还没有支出记录")
 
         top3 = "、".join(cat_sum.index[:3]) if (cat_sum is not None and not cat_sum.empty) else ""
-        st.markdown(f"<div style='color:#666;'>一共 {len(df)} 条账单｜主要开销方向：{top3}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='color:#636e72; font-size:15px;'>一共 {len(df)} 条账单｜主要开销方向：{top3}</div>", unsafe_allow_html=True)
 
         st.divider()
-        # 复盘区域，改名，去掉AI字眼
-        st.markdown("#### 消费复盘参考")
+        # 复盘板块
+        st.markdown("""
+        <div style="padding:12px; background:#00b894; border-radius:12px; color:white;">
+            <h4 style="margin:0;">消费复盘参考</h4>
+        </div>
+        """, unsafe_allow_html=True)
         review_style = st.radio("选择复盘语气", ["毒舌", "温柔"], horizontal=True)
-        run_review = st.button("生成复盘文字")
+        run_review = st.button("生成复盘文字", type="primary")
 
         if run_review:
             st.markdown("""
-            <div style="background:#f8f9fa; padding:18px; border-radius:10px; border:1px solid #e2e8f0;">
+            <div style="background:#fff; padding:22px; border-radius:14px; border:2px solid #74b9ff;" class="card-shadow">
             """, unsafe_allow_html=True)
             st.write(get_review_text(res, top3, review_style))
             st.markdown("</div>", unsafe_allow_html=True)
@@ -185,7 +223,7 @@ if df is not None:
         st.caption(f"详情：{e}")
 else:
     st.markdown("""
-    <div style="background:#f0f4f8; padding:24px; border-radius:12px; text-align:center; color:#444;">
-    <p style="font-size:16px;">在左侧上传你的记账表格，或者勾选示例账单先看看效果</p>
+    <div style="background:linear-gradient(135deg,#dfe6e9,#b2bec3); padding:32px; border-radius:16px; text-align:center; color:#2d3436;" class="card-shadow">
+    <p style="font-size:18px; font-weight:500;">在左侧上传你的记账表格，或者勾选示例账单先看看效果</p>
     </div>
     """, unsafe_allow_html=True)
