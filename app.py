@@ -48,11 +48,11 @@ def get_ai_advice(res, details, mode):
 # ========================================================================================
 
 st.set_page_config(page_title="个人记账分析工具", layout="wide")
-st.title("📊 个人记账分析工具")
+st.title("个人记账分析工具")
 st.caption("上传记账流水 → 自动统计收支 → AI 给出消费建议")
 
 with st.sidebar:
-    st.header("📁 上传记账表格")
+    st.header("上传记账表格")
     uploaded_file = st.file_uploader("上传 csv / xlsx 文件", type=["csv", "xlsx"])
     use_demo = st.checkbox("先用示例数据看一下效果")
 
@@ -131,7 +131,7 @@ if df is not None:
         advice_mode = st.radio("选择 AI 风格", ["毒舌", "温柔"], horizontal=True)
         if st.button("生成消费建议"):
             with st.spinner("AI 思考中..."):
-                st.markdown("### 📋 财务诊断与规划报告")
+                st.markdown("### 财务诊断与规划报告")
                 st.info(get_ai_advice(res, top3, advice_mode))
 
     except Exception as e:
