@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# ============ 队友的模块（目前用本地实现，队友交付后替换成 from utils import / from ai_helper import）============
+# ============ 统计计算模块（逻辑不动）============
 def analyze_finance(df):
     """输入记账表格，返回总收入、总支出、结余"""
     if df is None or df.empty:
@@ -23,41 +23,57 @@ def analyze_finance(df):
     return {"总收入": float(total_in), "总支出": float(total_out), "结余": float(total_in - total_out)}
 
 
-def get_ai_advice(res, details, mode):
-    """根据收支情况给出不同风格建议，字数≥300"""
+def get_review_text(res, details, mode):
+    """消费复盘文字，重写，去掉AI味道"""
     income, out, rest = res["总收入"], res["总支出"], res["结余"]
-    top = details.split("、")[0] if details else "日常开销"
     top_list = details.split("、") if details else []
+    top = top_list[0] if top_list else "日常开销"
 
     if income <= 0:
-        return "目前你的收入记录为0，暂时没办法评估你的消费结构和存钱能力。建议你先把所有收入来源都录入到记账表格里，包括生活费、兼职收入、红包等，只有完整记录收入，我们才能客观判断你的开销是否合理，后续的消费规划才有参考意义。记账不只是记花出去的钱，收入才是整个预算的根基，缺少收入数据，所有的分析都会失真。等你补全收入信息之后，系统就可以帮你计算支出占比、识别高消费项目，给你适配的存钱方案，帮你慢慢养成稳定的储蓄习惯。"
+        return "目前还没有登记收入记录，暂时没法客观评估你的开销节奏。可以先把生活费、兼职、红包这些进账都记进去，收入是预算的基础，补齐之后，再看钱花得合不合适才更有意义。等收入记录完整，就能算出各项开销占比，帮你找到可以调整的地方，慢慢找到适合自己存钱的节奏。"
 
     rate = out / income * 100 if income else 0
-    if mode == "毒舌":
+    if mode == "直白提醒":
         if rate >= 90:
-            return f"你现在支出已经占到收入的{rate:.0f}%，几乎是月光状态，结余只剩下{rest:.0f}元。花钱最多的项目是{top}，其次还有{('、'.join(top_list[1:])) if len(top_list)>1 else '其他零散开销'}，这个消费模式风险非常高。一旦遇到突发情况，比如生病、需要购买必需品，你手里没有备用资金，很容易陷入资金紧张的困境。不要觉得当下有钱花就没有问题，这种高消耗的消费习惯会慢慢吞噬你存钱的可能性。优先把{top}这一项的开销压缩，给自己设置硬性上限，每一笔支出之前先想一想，这个东西是不是必须要买。很多消费都是一时冲动带来的，你现在不控制，后续每个月都要重复月光的循环，很难攒下属于自己的积蓄。大学生阶段本来就是积累资金、建立消费观念的黄金时期，现在放任自己随意消费，等到之后有需要用钱的时候，你就会明白没有存款有多被动。"
+            return f"现在支出占到收入的{rate:.0f}%，几乎留不下钱，结余只有{rest:.0f}元。花钱大头是{top}，其次还有{('、'.join(top_list[1:])) if len(top_list)>1 else '其他零散开销'}，这样的消费状态容错空间很小。一旦遇到临时需要用钱的情况，很容易紧张。优先给{top}这项设一个花钱上限，买东西前多想一想是不是刚需。大学生正是建立消费习惯的时候，一直接近月光，很难攒下属于自己的备用金。"
         if rate >= 70:
-            return f"这个月支出占收入{rate:.0f}%，结余只有{rest:.0f}元，看着好像还能维持，但是隐患已经很大了。你的主要开销集中在{top}，搭配{('、'.join(top_list[1:])) if len(top_list)>1 else '各类小额支出'}，这些零散消费叠加在一起，悄悄吃掉了你大部分收入。很多人就是觉得单次花钱不多，没有放在心上，最后月底一算才发现钱早就花光了。你现在的状态属于临界状态，稍微多一笔额外消费，就直接变成超支。建议你给{top}设置月度预算，每次消费前对照预算看看剩余额度，同时留意那些不起眼的小额支出，奶茶、零食、小件网购，日积月累也是一笔不小的数目。不要抱着“下个月再存钱”的想法，存钱要从当下开始，一点点收紧不必要的开支，慢慢把结余比例拉高，给自己留出应对意外的缓冲资金。"
-        return f"目前结余{rest:.0f}元，整体消费暂时及格，但绝对不能放松警惕。你的大额支出集中在{top}，还有{('、'.join(top_list[1:])) if len(top_list)>1 else '其他日常花费'}，现在看着收支平衡，但是很容易因为一次冲动消费直接打乱节奏。很多人就是在这种平稳的状态下放松管控，慢慢提高自己的消费阈值，之后想要再降下来就很难。消费习惯是一点点养出来的，不要因为现在还有结余就随便放宽预算。你可以给{top}这类弹性支出预留浮动上限，同时区分刚需消费和享受型消费，刚需优先保障，非必要消费尽量延后。坚持记账、持续复盘，慢慢把储蓄比例稳定提升，长期下来，你会明显感受到手里有存款带来的安全感，而不是每次月底都担心钱不够用。"
+            return f"本月开销占收入{rate:.0f}%，结余{rest:.0f}元，表面上还撑得住，但已经快要踩线了。主要花费在{top}{('、' + '、'.join(top_list[1:])) if len(top_list)>1 else '和一些零碎支出'}。很多小钱单独看不多，攒在一起就吃掉一大半收入。再多一笔意外支出就容易超支。可以给{top}定好每月额度，同时留意奶茶、网购这类不起眼的小额消费，积少成多影响不小。存钱别等月底剩下多少，尽量先预留一部分再安排消费。"
+        return f"当前结余{rest:.0f}元，整体收支还算稳妥，但不能松懈。大额支出集中在{top}{('、' + '、'.join(top_list[1:])) if len(top_list)>1 else '以及其他日常花费'}。现在看着宽裕，很容易慢慢提高花钱标准，之后再收紧就难了。区分刚需和享受型消费，必要的优先，非急需的可以延后。坚持定期看账单复盘，慢慢把能存下来的比例拉高，手里有余钱才更踏实。"
     else:
         if rate >= 90:
-            return f"这个月你的支出占比达到了{rate:.0f}%，整体偏高，主要开销集中在{top}，还有{('、'.join(top_list[1:])) if len(top_list)>1 else '一些零散支出'}，目前结余{rest:.0f}元。不用太焦虑，我们可以慢慢调整消费结构，不用一下子苛刻地压缩所有开销。首先可以重点关注{top}这一项，它是占用资金最多的板块，我们可以先给它设置一个温和的月度预算上限，在满足基础需求的前提下，减少非必要的消费。很多时候我们的消费来自一时的情绪，并不是真的需要这件物品，下次准备消费的时候，可以先放一天再决定。同时，建议你慢慢建立一笔应急小金库，应急金不用一次性存很多，每个月结余的钱优先放进去，这笔钱可以帮你应对突发的支出，避免临时缺钱的窘迫。记账本身就是一个认识自己消费习惯的过程，我们一点点优化，慢慢把支出占比降下来，存钱会变成一件轻松的事，而不是压力。"
+            return f"这个月开销占收入{rate:.0f}%，比例偏高，花钱集中在{top}{('、' + '、'.join(top_list[1:])) if len(top_list)>1 else '和一些零散支出'}，结余{rest:.0f}元。不用一下子压缩所有开销，可以慢慢调整。先从占比最高的{top}入手，设置一个舒服的上限，减少冲动下单。想买东西可以放一天再决定，避开情绪消费。慢慢攒一点备用小金库，不用一次存很多，每月结余优先放进去，应对突发支出会从容很多。记账本身就是慢慢摸清自己花钱习惯的过程，一点点调整就好。"
         if rate >= 70:
-            return f"你目前的收支情况整体还算平稳，结余{rest:.0f}元，主要支出分布在{top}、{('、'.join(top_list[1:])) if len(top_list)>1 else '其他日常项目'}。这个状态还有优化的空间，不用大刀阔斧改变生活方式，做一些小调整就会有很好的效果。你可以试着适度收紧{top}这部分弹性开销，分清哪些是必须花的刚需，哪些是用来取悦自己的享受型消费，享受型消费可以保留，但控制频率和金额。小额消费很容易被我们忽略，比如随手买的零食、饮品，长期累积起来也是一笔不小的开支。你可以给自己定一个小目标，每个月强制留存一部分收入作为储蓄，先存后花，而不是花完剩下多少存多少。坚持一段时间复盘账单，你会越来越清楚自己的钱流向哪里，慢慢建立稳定、舒服的消费节奏，慢慢攒出属于自己的安全感。"
-        return f"恭喜你，现在你的收支结构比较健康，结余{rest:.0f}元，主要开销在{top}以及{('、'.join(top_list[1:])) if len(top_list)>1 else '其他日常支出'}。保持现在的节奏非常棒，同时我们还可以做一些优化，让财务状态更加稳妥。你可以给{top}这类消费预留一部分弹性预算，用来满足休闲、放松的需求，不用完全克制自己的正常享受，健康的预算不是压抑消费，而是让钱花得更明白。接下来可以规划长期储蓄目标，把结余分成两部分，一部分作为灵活备用金，一部分定向储蓄。继续坚持记账，定期回看账单，防止不知不觉抬高消费标准。良好的金钱观是长期积累的，你现在已经迈出很好的一步，持续保持下去，既能好好享受生活，又能稳步积攒存款，面对未来的各类选择时，也会拥有更多底气。"
-# ========================================================================================
+            return f"收支整体还算平稳，结余{rest:.0f}元，开销主要是{top}{('、' + '、'.join(top_list[1:])) if len(top_list)>1 else '等项目'}。还有优化空间，不用大幅度改变日常。可以适当控制{top}这类弹性消费，分清必须要买和用来放松享受的部分，享受可以有，但控制好频率。随手花的小额消费很容易被忽略，长期也是一笔不小的数目。试着养成先存后花的习惯，每个月固定留一部分作为储蓄，再安排其余开销，定期回看账单，找到适合自己舒服的节奏。"
+        return f"很棒，目前收支状态比较健康，结余{rest:.0f}元，主要花费在{top}{('、' + '、'.join(top_list[1:])) if len(top_list)>1 else '以及其他日常支出'}。保持现在节奏的同时还可以再优化。{top}这类休闲支出可以保留一部分预算，不用完全克制，合理消费不是压抑自己。结余可以分成灵活备用钱和长期储蓄两部分。继续坚持记账复盘，避免不知不觉越花越多。稳定的金钱习惯是慢慢养出来的，既能好好生活，也能稳步攒钱。"
 
-st.set_page_config(page_title="个人记账分析工具", layout="wide")
-st.title("个人记账分析工具")
-st.caption("上传记账流水 → 自动统计收支 → AI 给出消费建议")
 
+# ===================== 页面配置 =====================
+st.set_page_config(page_title="我的记账本", layout="wide")
+
+# 标题区，加一点样式感
+st.markdown("""
+<div style="padding:16px; background:#f7f9fc; border-radius:12px; border-left:6px solid #4682B4;">
+    <h2 style="margin:0; color:#2c3e50;">我的记账本</h2>
+    <p style="margin:6px 0 0; color:#555;">上传账单表格，查看收支汇总，梳理自己的花钱节奏</p>
+</div>
+""", unsafe_allow_html=True)
+st.divider()
+
+# 侧边栏
 with st.sidebar:
-    st.header("上传记账表格")
-    uploaded_file = st.file_uploader("上传 csv / xlsx 文件", type=["csv", "xlsx"])
-    use_demo = st.checkbox("先用示例数据看一下效果")
+    st.markdown("### 📂 账单文件")
+    uploaded_file = st.file_uploader("上传表格", type=["csv", "xlsx"], help="表头需要包含：日期、分类、金额、收支类型")
+    use_demo = st.checkbox("打开示例账单预览效果")
+    st.markdown("""
+    <div style="background:#f0f4f8; padding:10px; border-radius:8px; font-size:13px; color:#444;">
+    💡 小提示<br>
+    - 支持 csv / xlsx<br>
+    - 收支类型填：收入 / 支出
+    </div>
+    """, unsafe_allow_html=True)
+
 
 df = None
-
 if uploaded_file is not None:
     try:
         if uploaded_file.name.lower().endswith(".csv"):
@@ -69,7 +85,7 @@ if uploaded_file is not None:
         else:
             df = pd.read_excel(uploaded_file)
     except Exception:
-        st.error("❌ 文件读取失败：请确认是 csv / xlsx 文件，并且没有被其他程序占用。")
+        st.error("❌ 文件读取失败，检查文件格式，不要在WPS/Excel里打开占用着文件。")
 elif use_demo:
     df = pd.DataFrame({
         "日期": ["2026-09-01", "2026-09-01", "2026-09-02", "2026-09-03", "2026-09-05"],
@@ -79,30 +95,54 @@ elif use_demo:
         "备注": ["家里转账", "洗衣液", "和室友聚餐", "黄焖鸡", "游戏充值"],
     })
 
+
 if df is not None:
     try:
-        # 【新增：可编辑表格，修改分类】
-        with st.expander("🔍 查看并修改账单分类明细", expanded=False):
+        # 账单明细区块
+        st.markdown("#### 📝 账单明细（可以直接修改）")
+        with st.expander("点开查看、编辑每一笔记录", expanded=False):
             df = st.data_editor(df, use_container_width=True)
-
-        res = analyze_finance(df)
-
-        col1, col2, col3 = st.columns(3)
-        col1.metric("💰 总收入", f"{res['总收入']:.2f} 元")
-        col2.metric("💸 总支出", f"{res['总支出']:.2f} 元")
-        col3.metric("📌 结余", f"{res['结余']:.2f} 元")
 
         st.divider()
 
-        # 【修改：两张图表左右并排 col1, col2】
+        # 收支卡片，美化三块指标
+        res = analyze_finance(df)
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.markdown("""
+            <div style="background:#e8f5e9; padding:20px; border-radius:10px; text-align:center;">
+                <div style="font-size:14px; color:#333;">总收入</div>
+                <div style="font-size:26px; font-weight:bold; color:#2e7d32;">{:.2f} 元</div>
+            </div>
+            """.format(res["总收入"]), unsafe_allow_html=True)
+        with c2:
+            st.markdown("""
+            <div style="background:#ffebee; padding:20px; border-radius:10px; text-align:center;">
+                <div style="font-size:14px; color:#333;">总支出</div>
+                <div style="font-size:26px; font-weight:bold; color:#c62828;">{:.2f} 元</div>
+            </div>
+            """.format(res["总支出"]), unsafe_allow_html=True)
+        with c3:
+            rest_color = "#2e7d32" if res["结余"]>=0 else "#c62828"
+            st.markdown("""
+            <div style="background:#f5f5f5; padding:20px; border-radius:10px; text-align:center;">
+                <div style="font-size:14px; color:#333;">当前结余</div>
+                <div style="font-size:26px; font-weight:bold; color:{};">{:.2f} 元</div>
+            </div>
+            """.format(rest_color, res["结余"]), unsafe_allow_html=True)
+
+        st.divider()
+        st.markdown("#### 📈 收支图表")
         col_a, col_b = st.columns(2)
         with col_a:
             fig_pie = px.pie(
                 values=[res["总收入"], res["总支出"]],
                 names=["收入", "支出"],
-                title="收支占比",
-                color_discrete_sequence=["#2E8B57", "#D9534F"],
+                title="收入和支出占比",
+                color_discrete_sequence=["#43a047", "#e53935"],
+                hole=0.2
             )
+            fig_pie.update_layout(title_x=0.5)
             st.plotly_chart(fig_pie, use_container_width=True)
 
         with col_b:
@@ -115,27 +155,37 @@ if df is not None:
                     x=cat_sum.values,
                     y=cat_sum.index,
                     orientation="h",
-                    title="支出分类排名",
+                    title="各类开销排行",
                     labels={"x": "金额（元）", "y": "分类"},
+                    color_discrete_sequence=["#5c6bc0"]
                 )
-                fig_bar.update_layout(yaxis=dict(autorange="reversed"))
+                fig_bar.update_layout(yaxis=dict(autorange="reversed"), title_x=0.5)
                 st.plotly_chart(fig_bar, use_container_width=True)
             else:
-                st.info("暂无支出记录")
+                st.info("目前还没有支出记录")
 
         top3 = "、".join(cat_sum.index[:3]) if (cat_sum is not None and not cat_sum.empty) else ""
-        st.caption(f"明细共 {len(df)} 条记录；支出主要花在：{top3}")
+        st.markdown(f"<div style='color:#666;'>一共 {len(df)} 条账单｜主要开销方向：{top3}</div>", unsafe_allow_html=True)
 
         st.divider()
-        st.subheader("🤖 AI 消费建议")
-        advice_mode = st.radio("选择 AI 风格", ["毒舌", "温柔"], horizontal=True)
-        if st.button("生成消费建议"):
-            with st.spinner("AI 思考中..."):
-                st.markdown("### 财务诊断与规划报告")
-                st.info(get_ai_advice(res, top3, advice_mode))
+        # 复盘区域，改名，去掉AI字眼
+        st.markdown("#### 📖 消费复盘参考")
+        review_style = st.radio("选择复盘语气", ["直白提醒", "温和建议"], horizontal=True)
+        run_review = st.button("生成复盘文字")
+
+        if run_review:
+            st.markdown("""
+            <div style="background:#f8f9fa; padding:18px; border-radius:10px; border:1px solid #e2e8f0;">
+            """, unsafe_allow_html=True)
+            st.write(get_review_text(res, top3, review_style))
+            st.markdown("</div>", unsafe_allow_html=True)
 
     except Exception as e:
-        st.error("❌ 文件处理失败：请检查表格是否为空、表头是否包含『日期 / 分类 / 金额 / 收支类型』。")
-        st.caption(f"错误详情：{e}")
+        st.error("❌ 账单处理出错，请检查表头：需要日期、分类、金额、收支类型")
+        st.caption(f"详情：{e}")
 else:
-    st.info("👈 请在左侧上传表格，或勾选「先用示例数据看一下效果」")
+    st.markdown("""
+    <div style="background:#f0f4f8; padding:24px; border-radius:12px; text-align:center; color:#444;">
+    <p style="font-size:16px;">👈 在左侧上传你的记账表格，或者勾选示例账单先看看效果</p>
+    </div>
+    """, unsafe_allow_html=True)
